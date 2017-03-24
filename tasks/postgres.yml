@@ -1,0 +1,47 @@
+---
+- name: install postgres packages
+  apt: pkg={{item}} state=latest update_cache=yes
+  with_items:
+    - postgresql
+    - postgis
+    - postgresql-contrib
+    - postgresql-9.4-postgis-2.1
+    - postgresql-server-dev-9.4
+    - python-psycopg2
+
+- name: check if data dir exists
+  shell: test -d /srv/postgresql
+  register: datadir_exists
+  check_mode: no
+  ignore_errors: yes
+  changed_when: false
+
+- name: stop postgres
+  shell: /etc/init.d/postgresql stop
+  when: datadir_exists|failed
+
+- name: move postgres data to srv
+  shell: mv /var/lib/postgresql /srv/
+  when: datadir_exists|failed
+
+- name: deploy postgres conf
+  template: src=postgresql.conf.j2 dest=/etc/postgresql/9.4/main/postgresql.conf
+
+- name: start postgres
+  shell: /etc/init.d/postgresql start
+  when: datadir_exists|failed
+
+- name: create PG super user
+  postgresql_user: 
+    name: {{ nominatim_user }}
+    role_attr_flags: CREATEDB,CREATEROLE,SUPERUSER
+  become: true
+  become_user: postgres
+
+- name: create PG website user
+  postgresql_user: 
+    name: www-data
+    role_attr_flags: NOSUPERUSER,NOCREATEDB,NOCREATEROLE                  
+  become: true
+  become_user: postgres
+

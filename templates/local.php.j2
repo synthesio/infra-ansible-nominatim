@@ -1,0 +1,17 @@
+<?php
+// Paths
+@define('CONST_Postgresql_Version', '9.4');
+@define('CONST_Postgis_Version', '2.1');
+
+// Website settings
+@define('CONST_Website_BaseURL', 'http://{{ nominatim_web_hostname }}/');
+
+//update process
+@define('CONST_Osmosis_Binary', '/opt/osmosis/bin/osmosis');
+
+@define('CONST_Replication_MaxInterval', '40000');     // Process each update separately, osmosis cannot merge multiple updates
+@define('CONST_Replication_Update_Interval', '86400');  // How often upstream publishes diffs
+@define('CONST_Replication_Recheck_Interval', '900');   // How long to sleep if no update found yet
+
+@define('CONST_Log_DB', false);
+

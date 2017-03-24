@@ -1,0 +1,13 @@
+ExtendedStatus On
+Listen 8090
+
+<VirtualHost *:8090>
+  ServerName {{ ansible_fqdn | regex_replace('\.int', '') }}
+  ServerAlias {{ ansible_fqdn}} {% for ip in ansible_all_ipv4_addresses %}{{ip}} {% endfor %}
+
+  <IfModule mod_status.c>
+    <Location /server-status>
+      SetHandler server-status
+    </Location>
+  </IfModule>
+</VirtualHost>

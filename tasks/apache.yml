@@ -1,0 +1,31 @@
+---
+
+- name: create vhost symlink
+  file: state=link src=/etc/apache2/sites-available/10-nominatim.conf dest=/etc/apache2/sites-enabled/10-nominatim.conf force=yes
+
+- name: remove default vhost
+  file: state=absent dest="{{item}}"
+  with_items:
+    - /etc/apache2/sites-enabled/000-default.conf 
+    - /etc/apache2/sites-available/000-default.conf
+  notify: reload apache2
+
+- name: copy vhost config
+  template: src=apache/10-nominatim.conf.j2 dest=/etc/apache2/sites-available/10-nominatim.conf
+  notify: reload apache2
+
+- name: link  vhost
+  file: src=/etc/apache2/sites-available/10-nominatim.conf dest=/etc/apache2/sites-enabled/10-nominatim.conf state=link force=yes
+  notify: reload apache2
+
+- name: delete default status conf
+  file: path=/etc/apache2/mods-enabled/status.conf state=absent
+  notify: reload apache2
+
+- name: configure status url
+  template: src=apache/vhost_status.conf.j2 dest=/etc/apache2/sites-available/20-status.conf
+  notify: reload apache2
+
+- name: link  vhost
+  file: src=/etc/apache2/sites-available/20-status.conf dest=/etc/apache2/sites-enabled/20-status.conf state=link force=yes
+  notify: reload apache2

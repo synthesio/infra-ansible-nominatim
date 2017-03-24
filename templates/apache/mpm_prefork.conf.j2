@@ -1,0 +1,7 @@
+<IfModule mpm_prefork_module>
+  StartServers     {{ ansible_processor_vcpus * 2 }}
+  MinSpareServers  {{ ansible_processor_vcpus * 2 }} 
+  MaxSpareServers  {{ ansible_processor_vcpus * 2 }}
+  MaxRequestWorkers {{ ansible_processor_vcpus * 10 }}
+  MaxConnectionsPerChild  500
+</IfModule>
