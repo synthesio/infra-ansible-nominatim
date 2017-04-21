@@ -5,3 +5,4 @@ nominatim_base_dir: /opt/nominatim
 nominatim_web_dir: /var/www/nominatim
 nominatim_web_hostname: "{{ ansible_hostname }}"
 nominatim_install_dir: "{{ nominatim_base_dir }}/Nominatim-{{ nominatim_version }}"
+apache2_trusted_proxies: ""

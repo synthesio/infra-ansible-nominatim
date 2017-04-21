@@ -1,6 +1,13 @@
 <VirtualHost *:80>
   ServerName {{ nominatim_web_hostname }}
-
+  
+  <IfModule mod_remoteip.c> 
+    RemoteIPHeader X-Forwarded-For
+{% for proxy in apache2_trusted_proxies %}
+    RemoteIPInternalProxy {{ proxy }}
+{% endfor %}
+  </IfModule>
+  
   DocumentRoot {{ nominatim_web_dir }}
   <Directory "{{ nominatim_web_dir }}/">
     Options FollowSymLinks MultiViews
@@ -8,6 +15,11 @@
     Order allow,deny
     Allow from all
   </Directory>
+
+  LogFormat "%a %l %u %t \"%r\" %>s %O \"%{Referer}i\" \"%{User-Agent}i\"" combined_realip
+
+  CustomLog /var/log/apache2/{{ nominatim_web_hostname }}.log combined_realip
+  ErrorLog  /var/log/apache2/{{ nominatim_web_hostname }}-err.log
 
 </VirtualHost>
 

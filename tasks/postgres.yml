@@ -33,7 +33,7 @@
 
 - name: create PG super user
   postgresql_user: 
-    name: {{ nominatim_user }}
+    name: "{{ nominatim_user }}"
     role_attr_flags: CREATEDB,CREATEROLE,SUPERUSER
   become: true
   become_user: postgres

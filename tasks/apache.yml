@@ -10,6 +10,12 @@
     - /etc/apache2/sites-available/000-default.conf
   notify: reload apache2
 
+- name: activate apache modules
+  apache2_module: state=present name={{item}}
+  with_items:
+    - remoteip
+  notify: reload apache2
+
 - name: copy vhost config
   template: src=apache/10-nominatim.conf.j2 dest=/etc/apache2/sites-available/10-nominatim.conf
   notify: reload apache2

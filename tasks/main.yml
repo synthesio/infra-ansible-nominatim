@@ -31,6 +31,7 @@
 
 # create vhost + configure nominatim website
 - include: apache.yml
+  tags: apache2
 
 - name: create nominatim directories
   file: path="{{item}}"  owner={{ nominatim_user }} group={{ nominatim_user }} state=directory
@@ -57,8 +58,8 @@
     src: /tmp/Nominatim-{{ nominatim_version }}.tar.bz2
     dest: "{{ nominatim_base_dir }}/"
     copy: no
-    owner: {{ nominatim_user }}
-    group: {{ nominatim_user }}
+    owner: "{{ nominatim_user }}"
+    group: "{{ nominatim_user }}"
   when: nominatim_exists|failed
 
 - name: nominatim config local file
@@ -76,7 +77,7 @@
   args: 
     chdir: "{{ nominatim_install_dir }}/"
   become: true
-  become_user: {{ nominatim_user }}
+  become_user: "{{ nominatim_user }}"
   when: nominatim_configured|failed
 
 
@@ -101,7 +102,7 @@
    url: http://www.nominatim.org/data/gb_postcode_data.sql.gz
    dest: "{{ nominatim_install_dir }}/data/"
   become: true
-  become_user: {{ nominatim_user }}
+  become_user: "{{ nominatim_user }}"
   when: dl_planet|failed 
 
 - name: import planet
@@ -109,7 +110,7 @@
   args:
       chdir: "{{ nominatim_install_dir }}/"
   become: true
-  become_user: {{ nominatim_user }}
+  become_user: "{{ nominatim_user }}"
   when: dl_planet|failed 
 
 
@@ -128,7 +129,7 @@
    - wikipedia_article.sql.bin
    - wikipedia_redirect.sql.bin
   become: true
-  become_user: {{ nominatim_user }}
+  become_user: "{{ nominatim_user }}"
   when: dl_wiki|failed
 
 - name: import special phrases
@@ -139,7 +140,7 @@
   args:
       chdir: "{{ nominatim_install_dir }}/"
   become: true
-  become_user: {{ nominatim_user }}
+  become_user: "{{ nominatim_user }}"
   when: dl_wiki|failed
 
 - name: check if create website is needed
@@ -152,7 +153,7 @@
 - name: configure osm website
   shell: "{{ nominatim_install_dir }}/utils/setup.php --create-website {{ nominatim_web_dir }}"
   become: true
-  become_user: {{ nominatim_user }}
+  become_user: "{{ nominatim_user }}"
   when: create_website|failed
 
 
