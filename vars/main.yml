@@ -1,0 +1,40 @@
+---
+
+nominatim:
+  packages:
+    stable:
+      - build-essential
+      - libxml2-dev
+      - libpq-dev
+      - libbz2-dev
+      - zlib1g-dev
+      - libtool
+      - automake
+      - cmake
+      - libproj-dev
+      - libboost-dev
+      - libboost-system-dev
+      - libboost-filesystem-dev
+      - libboost-thread-dev
+      - libexpat1-dev
+      - gcc
+      - g++
+      - proj-bin
+      - libgeos-c1v5
+      - libgeos++-dev
+      - libexpat-dev
+      - wget
+      - python-gdal
+      - python-pip
+    backports:
+      - python-pyosmium
+  data:
+    tiger_file: 'tiger2018-nominatim-preprocessed.tar.gz'
+    pbf:
+      file: "{{ pbf_file }}"
+      url: "{{ pbf_url }}"
+
+pbf_file: 'planet-latest.osm.pbf'
+pbf_url: 'https://ftp5.gwdg.de/pub/misc/openstreetmap/planet.openstreetmap.org/pbf'
+
+tmp_dir: '/srv/tmp'

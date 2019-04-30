@@ -1,0 +1,19 @@
+---
+postgresql_version: 9.6
+postgis_version: 2.3
+postgresql:
+  packages:
+    - postgresql
+    - postgis
+    - postgresql-contrib
+    - postgresql-{{ postgresql_version }}-postgis-{{ postgis_version }}
+    - postgresql-{{ postgresql_version }}-postgis-{{ postgis_version }}-scripts
+    - postgresql-server-dev-{{ postgresql_version }}
+    - python-psycopg2
+  conf:
+    data_directory: "/srv/postgresql/{{ postgresql_version }}/main"
+    shared_buffers: "2GB"
+    work_mem: "50MB"
+    maintenance_work_mem: "10GB"
+    effective_cache_size: "32GB"
+    random_page_cost: "2.0"

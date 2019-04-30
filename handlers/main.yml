@@ -1,3 +1,15 @@
 ---
 - name: reload apache2
-  service: name=apache2 state=reloaded
+  service:
+    name: apache2
+    state: reloaded
+
+- name: restart postgresql
+  service:
+    name: postgresql
+    state: restarted
+
+- name: restart supervisor
+  service:
+    name: supervisor
+    state: restarted

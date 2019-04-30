@@ -1,0 +1,7 @@
+---
+
+supervisor:
+  packages:
+    - supervisor
+  conf:
+    - update-nominatim.conf
