@@ -1,0 +1,44 @@
+---
+
+- name: include apache2 vars
+  include_vars:
+    file: apache2.yml
+
+- name: Install apache2 packages
+  apt:
+    pkg: "{{ apache2.packages }}"
+    state: latest
+    cache_valid_time: 3600
+  when: apache2.packages is defined
+
+- name: remove default vhost and status
+  file:
+    state: absent
+    dest: "{{ item }}"
+  loop: "{{ apache2.conf.files_absents|flatten(levels=1) }}"
+  notify: reload apache2
+
+- name: copy vhost and status config
+  template:
+    src: etc/apache/sites-available/{{ item }}.j2
+    dest: /etc/apache2/sites-available/{{ item }}
+  loop: "{{ apache2.conf.templates|flatten(levels=1) }}"
+  notify: reload apache2
+
+- name: enable vhost and status
+  file:
+    src: /etc/apache2/sites-available/{{ item }}
+    dest: /etc/apache2/sites-enabled/{{ item }}
+    state: link
+    force: yes
+  loop: "{{ apache2.conf.templates|flatten(levels=1) }}"
+  notify: reload apache2
+
+- name: activate apache modules
+  apache2_module:
+    state: present
+    name: "{{ item }}"
+  loop: "{{ apache2.conf.modules|flatten(levels=1) }}"
+  notify: reload apache2
+
+

@@ -1,0 +1,23 @@
+---
+
+apache2:
+  packages:
+    - php7.0
+    - php-pear
+    - php7.0-pgsql
+    - php7.0-json
+    - php7.0-intl
+    - php-db
+    - apache2
+    - libapache2-mod-php7.0
+  conf:
+    templates:
+      - 10-nominatim.conf
+      - 20-status.conf
+    modules:
+      - remoteip
+    files_absents:
+      - /etc/apache2/sites-enabled/000-default.conf
+      - /etc/apache2/sites-available/000-default.conf
+      - /etc/apache2/mods-enabled/status.conf
+

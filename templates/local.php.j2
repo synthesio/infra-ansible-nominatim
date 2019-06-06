@@ -1,17 +1,19 @@
 <?php
 // Paths
-@define('CONST_Postgresql_Version', '9.4');
-@define('CONST_Postgis_Version', '2.1');
+@define('CONST_Postgresql_Version', '{{ postgresql_version }}');
+@define('CONST_Postgis_Version', '{{ postgis_version }}');
 
 // Website settings
-@define('CONST_Website_BaseURL', 'http://{{ nominatim_web_hostname }}/');
+@define('CONST_Website_BaseURL', 'http://{{ nominatim.conf.web_hostname }}/');
+
+// Tiger data
+@define('CONST_Use_US_Tiger_Data', true);
 
 //update process
-@define('CONST_Osmosis_Binary', '/opt/osmosis/bin/osmosis');
+@define('CONST_Pyosmium_Binary', '/usr/local/bin/pyosmium-get-changes');
 
-@define('CONST_Replication_MaxInterval', '40000');     // Process each update separately, osmosis cannot merge multiple updates
-@define('CONST_Replication_Update_Interval', '86400');  // How often upstream publishes diffs
-@define('CONST_Replication_Recheck_Interval', '900');   // How long to sleep if no update found yet
+@define('CONST_Replication_Update_Interval', '86400');  // How often upstream publishes diffs ; default 75
+@define('CONST_Replication_Recheck_Interval', '900');   // How long to sleep if no update found yet ; default 60
 
 @define('CONST_Log_DB', false);
 

@@ -1,8 +1,27 @@
 ---
-nominatim_version: 2.5.1
-nominatim_user: www-data
-nominatim_base_dir: /opt/nominatim
-nominatim_web_dir: /var/www/nominatim
-nominatim_web_hostname: "{{ ansible_hostname }}"
-nominatim_install_dir: "{{ nominatim_base_dir }}/Nominatim-{{ nominatim_version }}"
-apache2_trusted_proxies: ""
+
+nominatim_version: '3.3.0'
+nominatim_base_dir: '/opt/nominatim'
+nominatim_web_dir: '/var/www/nominatim'
+nominatim_data_dir: '/srv/nominatim'
+nominatim_config:
+  version: "{{ nominatim_version }}"
+  user: 'www-data'
+  base_dir: "{{ nominatim_base_dir }}"
+  web_dir: "{{ nominatim_web_dir }}"
+  web_hostname: "{{ ansible_hostname }}"
+  install_dir: "{{ nominatim_base_dir }}/Nominatim-{{ nominatim_version }}"
+  data_dir: "{{ nominatim_data_dir }}"
+  directories:
+    - "/var/www"
+    - "{{ nominatim_base_dir }}"
+    - "/var/log/nominatim"
+    - "{{ nominatim_web_dir }}"
+    - "{{ nominatim_data_dir }}/data"
+  planet_files:
+    - "{{ pbf_file }}"
+    - "{{ pbf_file }}.md5"
+  wikipedia_files:
+    - wikipedia_article.sql.bin
+    - wikipedia_redirect.sql.bin
+

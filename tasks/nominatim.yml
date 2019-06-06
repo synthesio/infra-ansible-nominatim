@@ -1,0 +1,307 @@
+---
+
+# we need to read PG variables for local.php template
+- name: include postgresql vars
+  include_vars:
+    file: postgres.yml
+
+- name: Install base packages
+  apt:
+    pkg: "{{ nominatim.packages.stable }}"
+    state: latest
+    cache_valid_time: 3600
+  when: nominatim.packages.stable is defined
+
+- name: Install backports packages
+  apt:
+    pkg: "{{ nominatim.packages.backports }}"
+    state: latest
+    default_release: stretch-backports
+    cache_valid_time: 3600
+  when: nominatim.packages.backports is defined
+
+- name: create tmp directory
+  file:
+    path: "{{ tmp_dir }}"
+    owner: root
+    group: root
+    mode: 01777
+    state: directory
+
+- name: create nominatim directories
+  file:
+    path: "{{ item }}"
+    owner: "{{ nominatim_config.user }}"
+    group: "{{ nominatim_config.user }}"
+    state: directory
+  loop: "{{ nominatim_config.directories|flatten(levels=1) }}"
+
+- name: check if Nominatim application directory exists
+  shell: test -d {{ nominatim_config.install_dir }}
+  register: nominatim_exists
+  check_mode: no
+  ignore_errors: yes
+  changed_when: false
+
+# no checksum file available
+- name: dl nominatim file
+  get_url:
+    url: "https://www.nominatim.org/release/Nominatim-{{ nominatim_config.version }}.tar.bz2"
+    dest: "{{ nominatim_config.data_dir }}"
+    tmp_dest: "{{ tmp_dir }}"
+  when: nominatim_exists is failed
+
+- name: decompress Nominatim files
+  unarchive:
+    src: "{{ nominatim_config.data_dir }}/Nominatim-{{ nominatim_config.version }}.tar.bz2"
+    dest: "{{ nominatim_config.base_dir }}/"
+    copy: no
+    owner: "{{ nominatim_config.user }}"
+    group: "{{ nominatim_config.user }}"
+  when: nominatim_exists is failed
+
+- name: check if .../data is a symlink
+  shell: test -h {{ nominatim_config.install_dir }}/data
+  register: data_is_symlink
+  check_mode: no
+  ignore_errors: yes
+  changed_when: false
+
+- name: copy data/* into /srv/nominatim/data
+  shell: cp -p {{ nominatim_config.install_dir }}/data/* {{ nominatim_config.data_dir }}/data && rm -f {{ nominatim_config.install_dir }}/data/* && rmdir {{ nominatim_config.install_dir }}/data
+  check_mode: no
+  when: data_is_symlink is failed
+
+- name: link to nominatim data_dir/data (larger partition)
+  file:
+    src: "{{ nominatim_config.data_dir }}/data"
+    dest: "{{ nominatim_config.install_dir }}/data"
+    state: link
+    force: yes
+  when: data_is_symlink is failed
+
+- name: check if configure is needed
+  shell: cd {{ nominatim_config.install_dir }}/build && test -x ./module/nominatim.so
+  register: nominatim_configigured
+  check_mode: no
+  ignore_errors: yes
+  changed_when: false
+
+- name: configure
+  shell: mkdir build && cd build && cmake .. && make
+  args:
+    chdir: "{{ nominatim_config.install_dir }}/"
+  become: true
+  become_user: "{{ nominatim_config.user }}"
+  when: nominatim_configigured is failed
+
+- name: nominatim_configig local file
+  template:
+    src: local.php.j2
+    dest: "{{ nominatim_config.install_dir }}/build/settings/local.php"
+
+# DOWNLOAD DATAS
+# using dl_<file>_done allows to remove space consuming data files (like planet and tiger2018) without trying to re-download them for each ansible playbook run
+# it's not the "ansible way" but much simplier to read from my PoV
+# planet ; skip if already marked as downloaded and md5 checked
+- name: check if dl planet-latest file is needed
+  shell: test -f {{ nominatim_config.data_dir }}/{{ nominatim.data.pbf.file }} -a -f {{ nominatim_config.data_dir }}/{{ nominatim.data.pbf.file }}.md5 || test -f {{ tmp_dir }}/dl_planet_done
+  register: dl_planet
+  check_mode: no
+  ignore_errors: yes
+  changed_when: false
+
+# planet-latest.osm.pbf 45GB
+- name: dl nominatim planet data
+  get_url:
+    url: "{{ nominatim.data.pbf.url }}/{{ item }}"
+    dest: "{{ nominatim_config.data_dir }}"
+    tmp_dest: "{{ tmp_dir }}"
+    loop: "{{ nominatim_config.planet_files|flatten(levels=1) }}"
+  when: dl_planet is failed
+
+- name: check planet-latest.osm.pbf md5 and mark as "done"
+  shell: cd {{ nominatim_config.data_dir }} && md5sum -c {{ nominatim.data.pbf.file }}.md5 && touch {{ tmp_dir }}/dl_planet_done
+  check_mode: no
+  when: dl_planet is failed
+
+# gb_postcode - no checksum
+- name: check if dl gb_postcode_data file is needed
+  shell: test -f {{ nominatim_config.data_dir }}/data/gb_postcode_data.sql.gz || test -f {{ tmp_dir }}/dl_gb_postcode_done
+  register: dl_gb_postcode
+  check_mode: no
+  ignore_errors: yes
+  changed_when: false
+
+- name: dl gb postcode
+  get_url:
+    url: https://www.nominatim.org/data/gb_postcode_data.sql.gz
+    dest: "{{ nominatim_config.data_dir }}/data/"
+    tmp_dest: "{{ tmp_dir }}"
+  become: true
+  become_user: "{{ nominatim_config.user }}"
+  when: dl_gb_postcode is failed
+
+- name: mark gb postcode as downloaded
+  file:
+    path: "{{ tmp_dir }}/dl_gb_postcode_done"
+    state: touch
+  when: dl_gb_postcode is failed
+
+- name: check if dl wiki data is needed
+  shell: cd {{ nominatim_config.data_dir }}/data/ && test -f wikipedia_article.sql.bin && test -f wikipedia_redirect.sql.bin  || test -f {{ tmp_dir }}/dl_wikipedia_done
+  register: dl_wikipedia
+  check_mode: no
+  ignore_errors: yes
+  changed_when: false
+
+# wikipedia_{article,redirect}.sql.bin 1.4GB - no checksum
+- name: dl wikipedia files
+  get_url:
+    url: "https://www.nominatim.org/data/{{ item }}"
+    dest: "{{ nominatim_config.data_dir }}/data/"
+    tmp_dest: "{{ tmp_dir }}"
+  loop: "{{ nominatim_config.wikipedia_files|flatten(levels=1) }}"
+  become: true
+  become_user: "{{ nominatim_config.user }}"
+  when: dl_wikipedia is failed
+
+- name: mark wikipedia files as downloaded
+  file:
+    path: "{{ tmp_dir }}/dl_wikipedia_done"
+    state: touch
+  when: dl_wikipedia is failed
+
+- name: check if we need to dl tiger2018 datas
+  shell: test -f {{ nominatim_config.data_dir }}/{{ nominatim.data.tiger_file }} || test -f {{ tmp_dir }}/dl_tiger_done
+  register: dl_tiger
+  check_mode: no
+  ignore_errors: yes
+  changed_when: false
+
+# tiger2018 1.9GB - no checksum
+- name: dl tiger2018 data
+  get_url:
+    url: "https://www.nominatim.org/data/{{ nominatim.data.tiger_file }}"
+    dest: "{{ nominatim_config.data_dir }}"
+    tmp_dest: "{{ tmp_dir }}"
+  become: true
+  become_user: "{{ nominatim_config.user }}"
+  when: dl_tiger is failed
+
+- name: check if we need to extract tiger data
+  shell: test -d {{ nominatim_config.data_dir }}/data/tiger || test -f {{ tmp_dir }}/dl_tiger_done
+  register: extract_tiger
+  check_mode: no
+  ignore_errors: yes
+  changed_when: false
+
+- name: decompress tiger data files
+  unarchive:
+    src: "{{ nominatim_config.data_dir }}/{{ nominatim.data.tiger_file }}"
+    dest: "{{ nominatim_config.data_dir }}/data"
+    copy: no
+    owner: "{{ nominatim_config.user }}"
+    group: "{{ nominatim_config.user }}"
+  when: extract_tiger is failed
+
+- name: mark tiger as downloaded and extracted
+  file:
+    path: "{{ tmp_dir }}/dl_tiger_done"
+    state: touch
+  when: extract_tiger is failed
+
+# IMPORT DATAS
+# we MUST have other datas (wikipedia, tiger2018 files)  already downloaded and extracted before importing planet
+# we issued "flag" files (via touch command) to have individual steps for the import process :
+# the whole target of this, is to be able to
+- name: check if we have d/l all files needed
+  shell: cd {{ tmp_dir }} && test -f dl_planet_done -a -f dl_wikipedia_done -a -f dl_gb_postcode_done -a -f dl_tiger_done
+  register: all_files_downloaded
+  check_mode: no
+  changed_when: false
+
+# planet import : more than 3/4 days
+- name: import planet
+  shell: test -f {{ tmp_dir }}/import_planet_done || ./utils/setup.php --threads 8 --osm-file {{ nominatim_config.data_dir }}/{{ nominatim.data.pbf.file }} --all --osm2pgsql-cache 28000 > /var/log/nominatim/planet_import.log 2>&1
+  args:
+    chdir: "{{ nominatim_config.install_dir }}/build/"
+  become: true
+  become_user: "{{ nominatim_config.user }}"
+  when: all_files_downloaded
+  register: import_planet_done
+
+- name: mark planet as imported
+  file:
+    path: "{{ tmp_dir }}/import_planet_done"
+    state: touch
+  when: import_planet_done
+
+# generate and import special phrases, only if planet is imported ; skip if special phrases already imported
+- name: import special phrases
+  shell: test -f {{ tmp_dir }}/import_specialphrases_done || ( test -f {{ tmp_dir }}/import_planet_done && ./utils/specialphrases.php --{{ item }} > ../data/specialphrases_{{ item }}.sql && psql -d nominatim -f ../data/specialphrases_{{ item }}.sql > /var/log/nominatim/specialphrases_impot.log 2>&1 )
+  args:
+    chdir: "{{ nominatim_config.install_dir }}/build/"
+  loop: wiki-import
+  become: true
+  become_user: "{{ nominatim_config.user }}"
+  register: import_specialphrases_done
+  when: import_planet_done and not specialphrases_already_imported
+
+- name: mark special phrases as imported
+  file:
+    path: "{{ tmp_dir }}/import_specialphrases_done"
+    state: touch
+  when: import_specialphrases_done
+
+# import gb postcode only if special phrases are imported ; skip if gb_postcode already imported
+- name: import gb_postcode
+  shell: test -f {{ tmp_dir }}/import_gb_postcode_done || ( test -f {{ tmp_dir }}/import_specialphrases_done && zcat gb_postcode_data.sql.gz | psql -d nominatim )
+  args:
+    chdir: "{{ nominatim_config.data_dir }}"
+  become: true
+  become_user: "{{ nominatim_config.user }}"
+  register: import_gb_postcode_done
+
+- name: mark gb_postcode as imported
+  file:
+    path: "{{ tmp_dir }}/import_gb_postcode_done"
+    state: touch
+  when: import_gb_postcode_done
+
+# import tiger2918 only if gb_postcode are imported ; skip if tiger2018 already imported
+- name: import tiger2018 data
+  shell: test -f {{ tmp_dir }}/import_tiger_done || ( test -f {{ tmp_dir }}/import_gb_postcode_done && ./utils/setup.php --import-tiger-data > /var/log/nominatim/tiger_import.log 2>&1 )
+  args:
+    chdir: "{{ nominatim_config.install_dir }}/build/"
+  become: true
+  become_user: "{{ nominatim_config.user }}"
+  register: import_tiger_done
+
+- name: create functions tiger2018
+  shell: ./utils/setup.php --create-functions --enable-diff-updates --create-partition-functions 2>&1 > /var/log/nominatim/tiger_createfunctions.log
+  args:
+    chdir: "{{ nominatim_config.install_dir }}/build/"
+  become: true
+  become_user: "{{ nominatim_config.user }}"
+  when: import_tiger_done
+
+- name: mark tiger2018 as imported
+  file:
+    path: "{{ tmp_dir }}/import_tiger_done"
+    state: touch
+  when: import_tiger_done
+
+- name: prepare nominatim database for updates
+  shell: test -f {{ tmp_dir }}/init_updates_done || ./utils/update.php --init-updates 2>&1 > /var/log/nominatim/init_updates.log
+  args:
+    chdir: "{{ nominatim_config.install_dir }}/build/"
+  become: true
+  become_user: "{{ nominatim_config.user }}"
+  register: init_updates
+
+- name: initialize DB updates
+  file:
+    path: "{{ tmp_dir }}/init_updates_done"
+    state: touch
+  when: init_updates

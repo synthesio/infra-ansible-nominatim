@@ -1,47 +1,58 @@
 ---
-- name: install postgres packages
-  apt: pkg={{item}} state=latest update_cache=yes
-  with_items:
-    - postgresql
-    - postgis
-    - postgresql-contrib
-    - postgresql-9.4-postgis-2.1
-    - postgresql-server-dev-9.4
-    - python-psycopg2
 
-- name: check if data dir exists
-  shell: test -d /srv/postgresql
-  register: datadir_exists
+- name: include postgresql vars
+  include_vars:
+    file: postgres.yml
+
+# - name: create postgresql directories
+
+- name: install postgres packages
+  apt:
+    pkg: "{{ postgresql.packages }}"
+    state: present
+    cache_valid_time: 3600
+
+- name: check if PGDATA dir exits
+  shell: test -d /srv/postgresql/{{ postgresql_version }}/main
+  register: pgdata_exists
   check_mode: no
   ignore_errors: yes
   changed_when: false
 
-- name: stop postgres
-  shell: /etc/init.d/postgresql stop
-  when: datadir_exists|failed
+# https://wiki.debian.org/PostgreSql
+- name: remove default PG cluster
+  shell: /usr/bin/pg_dropcluster --stop {{ postgresql_version }} main
+  check_mode: no
+  ignore_errors: yes
+  become: true
+  become_user: postgres
+  when: pgdata_exists is failed
 
-- name: move postgres data to srv
-  shell: mv /var/lib/postgresql /srv/
-  when: datadir_exists|failed
+- name: create postgresql config directory
+  file:
+    path: "/etc/postgresql/{{ postgresql_version }}/main/"
+    state: directory
+    recurse: yes
+    owner: postgres
+    group: postgres
 
-- name: deploy postgres conf
-  template: src=postgresql.conf.j2 dest=/etc/postgresql/9.4/main/postgresql.conf
+- name: create new PG cluster in new location
+  shell: pg_createcluster --start {{ postgresql_version }} main -D /srv/postgresql/{{ postgresql_version }}/main
+  check_mode: no
+  ignore_errors: yes
+  when: pgdata_exists is failed
 
-- name: start postgres
-  shell: /etc/init.d/postgresql start
-  when: datadir_exists|failed
+- name: deploy custom postgres conf
+  template:
+    src: "etc/postgresql/{{ postgresql_version }}/main/postgresql.conf.j2"
+    dest: "/etc/postgresql/{{ postgresql_version }}/main/postgresql.conf"
+  notify: restart postgresql
 
 - name: create PG super user
-  postgresql_user: 
-    name: "{{ nominatim_user }}"
+  postgresql_user:
+    name: "{{ nominatim.conf.user }}"
     role_attr_flags: CREATEDB,CREATEROLE,SUPERUSER
   become: true
   become_user: postgres
-
-- name: create PG website user
-  postgresql_user: 
-    name: www-data
-    role_attr_flags: NOSUPERUSER,NOCREATEDB,NOCREATEROLE                  
-  become: true
-  become_user: postgres
+  when: pgdata_exists is failed
 
