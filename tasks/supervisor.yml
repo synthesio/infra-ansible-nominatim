@@ -16,4 +16,4 @@
     src: etc/supervisor/conf.d/{{ item }}.j2
     dest: /etc/supervisor/conf.d/{{ item }}
   loop: "{{ supervisor.conf|flatten(levels=1) }}"
-  notify: reload supervisor
+  notify: restart supervisor

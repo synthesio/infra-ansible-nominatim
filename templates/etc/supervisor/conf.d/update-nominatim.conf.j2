@@ -3,11 +3,11 @@
 [program:{{ item }}]
 autorestart=true
 autostart=true
-command={{ nominatim.conf.install_dir }}/build/utils/update.php --import-osmosis-all
-directory={{ nominatim.conf.install_dir }}/build
-environment=HOME=/var/www,PWD={{ nominatim.conf.install_dir }}/build
-user={{ nominatim.conf.user }}
-group={{ nominatim.conf.user }}
+command={{ nominatim_config.install_dir }}/build/utils/update.php --import-osmosis-all
+directory={{ nominatim_config.install_dir }}/build
+environment=HOME=/var/www,PWD={{ nominatim_config.install_dir }}/build
+user={{ nominatim_config.user }}
+group={{ nominatim_config.user }}
 numprocs=1
 process_name=%(process_num)02d
 startretries=30

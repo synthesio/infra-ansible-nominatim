@@ -95,7 +95,7 @@
   become_user: "{{ nominatim_config.user }}"
   when: nominatim_configigured is failed
 
-- name: nominatim_configig local file
+- name: nominatim config local file
   template:
     src: local.php.j2
     dest: "{{ nominatim_config.install_dir }}/build/settings/local.php"
@@ -239,14 +239,14 @@
 
 # generate and import special phrases, only if planet is imported ; skip if special phrases already imported
 - name: import special phrases
-  shell: test -f {{ tmp_dir }}/import_specialphrases_done || ( test -f {{ tmp_dir }}/import_planet_done && ./utils/specialphrases.php --{{ item }} > ../data/specialphrases_{{ item }}.sql && psql -d nominatim -f ../data/specialphrases_{{ item }}.sql > /var/log/nominatim/specialphrases_impot.log 2>&1 )
+  shell: test -f {{ tmp_dir }}/import_specialphrases_done || ( test -f {{ tmp_dir }}/import_planet_done && ./utils/specialphrases.php --{{ item }} > ../data/specialphrases_{{ item }}.sql && psql -d nominatim -f ../data/specialphrases_{{ item }}.sql > /var/log/nominatim/specialphrases_import.log 2>&1 )
   args:
     chdir: "{{ nominatim_config.install_dir }}/build/"
-  loop: wiki-import
+  loop: [ wiki-import ]
   become: true
   become_user: "{{ nominatim_config.user }}"
   register: import_specialphrases_done
-  when: import_planet_done and not specialphrases_already_imported
+  when: import_planet_done
 
 - name: mark special phrases as imported
   file:
