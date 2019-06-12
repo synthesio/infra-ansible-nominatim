@@ -15,20 +15,20 @@
   file:
     state: absent
     dest: "{{ item }}"
-  loop: "{{ apache2.conf.files_absents|flatten(levels=1) }}"
+  loop: "{{ apache2.conf.files_absents }}"
   notify: reload apache2
 
 - name: copy vhost and status config
   template:
-    src: etc/apache/sites-available/{{ item }}.j2
-    dest: /etc/apache2/sites-available/{{ item }}
+    src: "etc/apache2/sites-available/{{ item }}.j2"
+    dest: "/etc/apache2/sites-available/{{ item }}"
   loop: "{{ apache2.conf.templates|flatten(levels=1) }}"
   notify: reload apache2
 
 - name: enable vhost and status
   file:
-    src: /etc/apache2/sites-available/{{ item }}
-    dest: /etc/apache2/sites-enabled/{{ item }}
+    src: "/etc/apache2/sites-available/{{ item }}"
+    dest: "/etc/apache2/sites-enabled/{{ item }}"
     state: link
     force: yes
   loop: "{{ apache2.conf.templates|flatten(levels=1) }}"

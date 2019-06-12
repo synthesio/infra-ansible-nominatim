@@ -4,13 +4,13 @@
 @define('CONST_Postgis_Version', '{{ postgis_version }}');
 
 // Website settings
-@define('CONST_Website_BaseURL', 'http://{{ nominatim.conf.web_hostname }}/');
+@define('CONST_Website_BaseURL', 'http://{{ nominatim_config.web_hostname }}/');
 
 // Tiger data
 @define('CONST_Use_US_Tiger_Data', true);
 
 //update process
-@define('CONST_Pyosmium_Binary', '/usr/local/bin/pyosmium-get-changes');
+@define('CONST_Pyosmium_Binary', '/usr/lib/python-pyosmium/pyosmium-get-changes');
 
 @define('CONST_Replication_Update_Interval', '86400');  // How often upstream publishes diffs ; default 75
 @define('CONST_Replication_Recheck_Interval', '900');   // How long to sleep if no update found yet ; default 60

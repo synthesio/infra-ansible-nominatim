@@ -1,7 +1,8 @@
 # {{ ansible_managed }}
 
 <VirtualHost *:80>
-  ServerName {{ nominatim.conf.web_hostname }}
+  ServerName {{ nominatim_config.web_hostname }}
+  ServerAlias {{ ansible_fqdn }}
   
   <IfModule mod_remoteip.c> 
     RemoteIPHeader X-Forwarded-For
@@ -15,14 +16,13 @@
     Options FollowSymLinks MultiViews
     AddType text/html   .php     
     DirectoryIndex search.php
-    Order allow,deny
-    Allow from all
+    Require all granted
   </Directory>
 
   LogFormat "%a %l %u %t \"%r\" %>s %O \"%{Referer}i\" \"%{User-Agent}i\"" combined_realip
 
-  CustomLog /var/log/apache2/{{ nominatim.conf.web_hostname }}.log combined_realip
-  ErrorLog  /var/log/apache2/{{ nominatim.conf.web_hostname }}-err.log
+  CustomLog /var/log/apache2/{{ nominatim_config.web_hostname }}.log combined_realip
+  ErrorLog  /var/log/apache2/{{ nominatim_config.web_hostname }}-err.log
 
 </VirtualHost>
 
