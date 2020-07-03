@@ -1,14 +1,16 @@
 # Ansible Nominatim
-Based on official install documentation: wiki.openstreetmap.org/wiki/Nominatim/Installation
-This role installs a fully functionnal Nominatim instance on Debian OS
+
+Based on official install documentation: https://nominatim.org/release-docs/latest/admin/Installation/
+
+This role installs a fully functionnal Nominatim 3.3.0 instance on Debian 9 OS
 
 WARNING : this is configured to import planet-wide data, so it is recommended to use a tmux / screen session to launch this role.
           The longest task is the planet database import: about 3 days on a 2x NVME SSD, 12 cores E5-1650 machine.
 
 ## Prerequisite
-- Ansible 2.2
+- Ansible 2.9
 - Debian Stretch
-- python2
+- Python 3
 
 
 ## Playbook example
@@ -23,6 +25,7 @@ WARNING : this is configured to import planet-wide data, so it is recommended to
 ```
 
 You could override the default values in the vars file.
+
 Mainly for 
   - nominatim_version
   - web_hostname (vhost fqdn) for the service
@@ -35,7 +38,8 @@ With these Server's specifications :
 - 64GB of memory
 - 2 nvme 2TB ; software raid1
 
-planet import : approx 2.5 days
+Planet import : approx 2.5 days
+
 tiger2018 import : 2h
 
 ### Import processing
@@ -56,11 +60,11 @@ During imports, you can follow the output in the log files, for examples
 ```
 
 ### Troubleshooting
-http://nominatim.org/release-docs/latest/admin/Faq/#can-a-stoppedkilled-import-process-be-resumed
+https://nominatim.org/release-docs/latest/admin/Faq/#can-a-stoppedkilled-import-process-be-resumed
 
 To see if there is a blocked SQL operation in PG
 ```
-psql -d nominatim
+$ psql -d nominatim
 nominatim=# select pid, usename, pg_blocking_pids(pid) as blocked_by, query as blocked_query from pg_stat_activity where cardinality(pg_blocking_pids(pid)) > 0;?
 ```
 
@@ -69,13 +73,13 @@ Check the PostgreSQL logs
 
 The index creation could be restarted manually
 ```
-./utils/setup.php --index --create-search-indices --create-country-names
+$ ./utils/setup.php --index --create-search-indices --create-country-names
 ```
 (see `CONST_BasePath.'/utils/setup.php` for the full import process)
 
 ### Benchmarks
-see official wiki page https://wiki.openstreetmap.org/wiki/Osm2pgsql/benchmarks
+See official wiki page https://wiki.openstreetmap.org/wiki/Osm2pgsql/benchmarks
 
-https://wiki.openstreetmap.org/wiki/Osm2pgsql
-http://www.geofabrik.de/media/2012-09-08-osm2pgsql-performance.pdf
+- https://wiki.openstreetmap.org/wiki/Osm2pgsql
+- http://www.geofabrik.de/media/2012-09-08-osm2pgsql-performance.pdf
 
